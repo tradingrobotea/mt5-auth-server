@@ -10,20 +10,34 @@ export async function handler(event, context) {
     const now = new Date();
 
     // ==============================
-    // 数据源（可换数据库）
+    // 多组授权码（核心）
     // ==============================
-    const validCode = "123456";
-    const codeExpire = new Date("2026-2-31");
-
-    const avalidCode = "3456";
-    const acodeExpire = new Date("2026-12-31");
-
-
-    const allowedAccounts = ["78000801", "88888888"];
-    const accountExpire = new Date("2026-06-30");
+    const codeList = [
+      { code: "123456", expire: "2026-1-31" },
+      { code: "3456",   expire: "2026-08-01" },
+      { code: "VIP888", expire: "2027-01-01" }
+    ];
 
     // ==============================
-    // 响应基础结构
+    // 账户列表（可选）
+    // ==============================
+    const accountList = [
+      { account: "78000801", expire: "2026-06-30" },
+      { account: "88888888", expire: "2026-12-31" }
+    ];
+
+    // ==============================
+    // 查找code
+    // ==============================
+    let codeData = codeList.find(item => item.code === code);
+
+    // ==============================
+    // 查找account
+    // ==============================
+    let accountData = accountList.find(item => item.account === account);
+
+    // ==============================
+    // 结果
     // ==============================
     let response = {
       status: "error",
@@ -32,63 +46,50 @@ export async function handler(event, context) {
     };
 
     // ==============================
-    // 双通道判断（关键优化）
+    // code验证
     // ==============================
+    if (codeData) {
 
-    let codeValid = false;
-    let accountValid = false;
+      let expireDate = new Date(codeData.expire);
 
-    // -------- code校验 --------
-    if (code) {
-      if (code === validCode && now <= codeExpire) {
-        codeValid = true;
-      }
-    }
-
-    // -------- account校验 --------
-    if (account) {
-      if (allowedAccounts.includes(account) && now <= accountExpire) {
-        accountValid = true;
-      }
-    }
-
-    // ==============================
-    // 成功逻辑（任意通过即可）
-    // ==============================
-    if (codeValid || accountValid) {
-
-      response = {
-        status: "ok",
-        mode: codeValid ? "code" : "account",
-        expire: codeValid ? codeExpire.toISOString().split("T")[0]
-                          : accountExpire.toISOString().split("T")[0],
-        trade: true,
-        symbol: "BTCUSD"
-      };
-    }
-
-    // ==============================
-    // 失败原因细分（给MT5更清晰）
-    // ==============================
-    else {
-
-      if (code || account) {
-
-        if (code && code !== validCode) {
-          response.message = "invalid_code";
-        }
-        else if (account && !allowedAccounts.includes(account)) {
-          response.message = "invalid_account";
-        }
-        else {
-          response.message = "expired";
-        }
+      if (now > expireDate) {
+        response.message = "code_expired";
       }
       else {
-        response.message = "missing_params";
+        response = {
+          status: "ok",
+          mode: "code",
+          expire: codeData.expire,
+          trade: true,
+          symbol: "BTCUSD"
+        };
       }
     }
 
+    // ==============================
+    // account验证（如果code失败再判断）
+    // ==============================
+    else if (accountData) {
+
+      let expireDate = new Date(accountData.expire);
+
+      if (now > expireDate) {
+        response.message = "account_expired";
+      }
+      else {
+        response = {
+          status: "ok",
+          mode: "account",
+          expire: accountData.expire,
+          trade: true,
+          symbol: "BTCUSD"
+        };
+      }
+    }
+
+    // ==============================
+    // 返回
+    // ==============================
     return {
       statusCode: 200,
       headers: {
