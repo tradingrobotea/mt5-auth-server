@@ -13,7 +13,7 @@ export async function handler(event, context) {
     // 数据源（可换数据库）
     // ==============================
     const validCode = "123456";
-    const codeExpire = new Date("2026-12-31");
+    const codeExpire = new Date("2026-2-31");
 
     const allowedAccounts = ["78000801", "88888888"];
     const accountExpire = new Date("2026-06-30");
