@@ -3,7 +3,7 @@ export async function handler(event, context) {
   const params = event.queryStringParameters;
 
   const code = params.code || "";
-  const account = params.account || "";
+  //const account = params.account || "";
 
   // ===== 模拟授权逻辑 =====
   if (code !== "123456") {
