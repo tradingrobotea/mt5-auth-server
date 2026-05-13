@@ -15,8 +15,8 @@ export async function handler(event, context) {
     const validCode = "123456";
     const codeExpire = new Date("2026-2-31");
 
-    const validCode = "3456";
-    const codeExpire = new Date("2026-12-31");
+    const avalidCode = "3456";
+    const acodeExpire = new Date("2026-12-31");
 
 
     const allowedAccounts = ["78000801", "88888888"];
