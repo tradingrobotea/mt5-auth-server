@@ -10,9 +10,8 @@ export async function handler(event, context) {
     const now = new Date();
 
     // ==============================
-    // 模拟数据（实际可改数据库）
+    // 数据源（可换数据库）
     // ==============================
-
     const validCode = "123456";
     const codeExpire = new Date("2026-12-31");
 
@@ -20,63 +19,70 @@ export async function handler(event, context) {
     const accountExpire = new Date("2026-06-30");
 
     // ==============================
-    // 结果对象
+    // 响应基础结构
     // ==============================
-    let result = {
+    let response = {
       status: "error",
-      mode: "",
-      message: ""
+      mode: "none",
+      message: "invalid"
     };
 
-    // ==================================================
-    // ① 授权码 + 时间限制
-    // ==================================================
-    if (code) {
+    // ==============================
+    // 双通道判断（关键优化）
+    // ==============================
 
-      if (code !== validCode) {
-        result.message = "invalid_code";
-      }
-      else if (now > codeExpire) {
-        result.message = "code_expired";
-      }
-      else {
-        result = {
-          status: "ok",
-          mode: "code",
-          expire: codeExpire.toISOString().split("T")[0],
-          trade: true,
-          symbol: "BTCUSD"
-        };
+    let codeValid = false;
+    let accountValid = false;
+
+    // -------- code校验 --------
+    if (code) {
+      if (code === validCode && now <= codeExpire) {
+        codeValid = true;
       }
     }
 
-    // ==================================================
-    // ② 账户 + 时间限制
-    // ==================================================
-    else if (account) {
-
-      if (!allowedAccounts.includes(account)) {
-        result.message = "account_not_allowed";
-      }
-      else if (now > accountExpire) {
-        result.message = "account_expired";
-      }
-      else {
-        result = {
-          status: "ok",
-          mode: "account",
-          expire: accountExpire.toISOString().split("T")[0],
-          trade: true,
-          symbol: "BTCUSD"
-        };
+    // -------- account校验 --------
+    if (account) {
+      if (allowedAccounts.includes(account) && now <= accountExpire) {
+        accountValid = true;
       }
     }
 
     // ==============================
-    // 没参数
+    // 成功逻辑（任意通过即可）
+    // ==============================
+    if (codeValid || accountValid) {
+
+      response = {
+        status: "ok",
+        mode: codeValid ? "code" : "account",
+        expire: codeValid ? codeExpire.toISOString().split("T")[0]
+                          : accountExpire.toISOString().split("T")[0],
+        trade: true,
+        symbol: "BTCUSD"
+      };
+    }
+
+    // ==============================
+    // 失败原因细分（给MT5更清晰）
     // ==============================
     else {
-      result.message = "missing_params";
+
+      if (code || account) {
+
+        if (code && code !== validCode) {
+          response.message = "invalid_code";
+        }
+        else if (account && !allowedAccounts.includes(account)) {
+          response.message = "invalid_account";
+        }
+        else {
+          response.message = "expired";
+        }
+      }
+      else {
+        response.message = "missing_params";
+      }
     }
 
     return {
@@ -85,7 +91,7 @@ export async function handler(event, context) {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache"
       },
-      body: JSON.stringify(result)
+      body: JSON.stringify(response)
     };
 
   } catch (err) {
@@ -101,12 +107,4 @@ export async function handler(event, context) {
       })
     };
   }
-}
-
-{
-  "status": "ok",
-  "mode": "code",
-  "expire": "2026-12-31",
-  "trade": true,
-  "symbol": "BTCUSD"
 }
