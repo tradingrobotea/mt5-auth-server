@@ -2,8 +2,8 @@ export async function handler(event, context) {
 
   const params = event.queryStringParameters;
 
-  const code = params.code "";
-  //const account = params.account || "";
+  const code = params.code ||"";
+  const account = params.account || "";
 
   // ===== 模拟授权逻辑 =====
   if (code !== "123456") {
@@ -13,7 +13,7 @@ export async function handler(event, context) {
     };
   }
 
-  if (account !== "888888") {
+  if (account !== "78000801") {
     return {
       statusCode: 403,
       body: "ACCOUNT_ERROR"
