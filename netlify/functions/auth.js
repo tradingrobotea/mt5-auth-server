@@ -13,7 +13,7 @@ export async function handler(event, context) {
     // 多组授权码（核心）
     // ==============================
     const codeList = [
-      { code: "123456", expire: "2026-1-31" },
+      { code: "123456", expire: "2026-6-31" },
       { code: "3456",   expire: "2026-08-01" },
       { code: "VIP888", expire: "2027-01-01" }
     ];
