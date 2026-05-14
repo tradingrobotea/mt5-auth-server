@@ -61,7 +61,7 @@ export async function handler(event, context) {
           mode: "code",
           expire: codeData.expire,
           trade: true,
-          symbol: "BTCUSD"
+          symbol: "XAUUSD"
         };
       }
     }
@@ -82,7 +82,7 @@ export async function handler(event, context) {
           mode: "account",
           expire: accountData.expire,
           trade: true,
-          symbol: "BTCUSD"
+          symbol: "BTC-USD"
         };
       }
     }
