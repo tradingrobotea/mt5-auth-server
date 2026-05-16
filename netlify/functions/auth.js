@@ -1,115 +1,60 @@
-export async function handler(event, context) {
+// netlify/functions/auth.js
+// 访问：/.netlify/functions/auth?code=xxx&account=yyy
 
-  try {
+const CODE_LIST = [
+  { code: "123456", expire: "2026-06-30" },
+  { code: "3456",   expire: "2026-08-01" },
+  { code: "VIP888", expire: "2027-01-01" },
+];
 
-    const params = event.queryStringParameters || {};
+const ACCOUNT_LIST = [
+  { account: "78000801", expire: "2026-06-30" },
+  { account: "88888888", expire: "2026-12-31" },
+];
 
-    const code = params.code || "";
-    const account = params.account || "";
+const DEFAULT_CONFIG = {
+  symbol:             "XAUUSD",
+  buy:                true,
+  sell:               true,
+  tradeEnable:        true,
+  sl:                 150,
+  tp:                 300,
+  gridStep:           50,
+  lotMultiplier:      1.5,
+  partialCloseProfit: 100,
+};
 
-    const now = new Date();
+const CORS = {
+  "Content-Type":                "application/json",
+  "Cache-Control":               "no-cache",
+  "Access-Control-Allow-Origin": "*",
+};
 
-    // ==============================
-    // 多组授权码（核心）
-    // ==============================
-    const codeList = [
-      { code: "123456", expire: "2026-6-31" },
-      { code: "3456",   expire: "2026-08-01" },
-      { code: "VIP888", expire: "2027-01-01" }
-    ];
-
-    // ==============================
-    // 账户列表（可选）
-    // ==============================
-    const accountList = [
-      { account: "78000801", expire: "2026-06-30" },
-      { account: "88888888", expire: "2026-12-31" }
-    ];
-
-    // ==============================
-    // 查找code
-    // ==============================
-    let codeData = codeList.find(item => item.code === code);
-
-    // ==============================
-    // 查找account
-    // ==============================
-    let accountData = accountList.find(item => item.account === account);
-
-    // ==============================
-    // 结果
-    // ==============================
-    let response = {
-      status: "error",
-      mode: "none",
-      message: "invalid"
-    };
-
-    // ==============================
-    // code验证
-    // ==============================
-    if (codeData) {
-
-      let expireDate = new Date(codeData.expire);
-
-      if (now > expireDate) {
-        response.message = "code_expired";
-      }
-      else {
-        response = {
-          status: "ok",
-          mode: "code",
-          expire: codeData.expire,
-          trade: true,
-          symbol: "XAUUSD"
-        };
-      }
-    }
-
-    // ==============================
-    // account验证（如果code失败再判断）
-    // ==============================
-    else if (accountData) {
-
-      let expireDate = new Date(accountData.expire);
-
-      if (now > expireDate) {
-        response.message = "account_expired";
-      }
-      else {
-        response = {
-          status: "ok",
-          mode: "account",
-          expire: accountData.expire,
-          trade: true,
-          symbol: "BTC-USD"
-        };
-      }
-    }
-
-    // ==============================
-    // 返回
-    // ==============================
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
-      },
-      body: JSON.stringify(response)
-    };
-
-  } catch (err) {
-
-    return {
-      statusCode: 500,
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        status: "error",
-        message: "server_error"
-      })
-    };
-  }
+function respond(code, body) {
+  return { statusCode: code, headers: CORS, body: JSON.stringify(body) };
 }
+
+exports.handler = async function (event) {
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: CORS, body: "" };
+
+  const p       = event.queryStringParameters || {};
+  const code    = (p.code    || "").trim();
+  const account = (p.account || "").trim();
+  const now     = new Date();
+
+  const codeData = CODE_LIST.find(i => i.code === code);
+  if (codeData) {
+    if (now > new Date(codeData.expire))
+      return respond(400, { status: "error", message: "code_expired" });
+    return respond(200, { status: "ok", mode: "code", expire: codeData.expire, ...DEFAULT_CONFIG });
+  }
+
+  const accData = ACCOUNT_LIST.find(i => i.account === account);
+  if (accData) {
+    if (now > new Date(accData.expire))
+      return respond(400, { status: "error", message: "account_expired" });
+    return respond(200, { status: "ok", mode: "account", expire: accData.expire, ...DEFAULT_CONFIG });
+  }
+
+  return respond(403, { status: "error", message: "invalid_credentials" });
+};
