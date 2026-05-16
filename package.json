@@ -1,0 +1,8 @@
+{
+  "name": "cloud-auth-ea",
+  "version": "1.0.0",
+  "description": "MT5 EA Cloud Auth & Config System",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
